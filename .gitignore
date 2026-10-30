@@ -1,0 +1,24 @@
+# Android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+.externalNativeBuild/
+.kotlin/
+
+# 웹 시뮬레이터
+node_modules/
+
+# AI TTS 생성 중간 산출물. 청취·권리 검토 뒤 승인한 음성 팩만 명시적으로 반입한다.
+harness/generated-voicepacks/
+harness/qwen-model-cache/
+harness/.qwen-tts/
+harness/qwen-voice-previews/
+
+# Non-public pack assets and authoring sources live in the private SDK repositories.
+android/app/src/debug/assets/voicepacks/ai.bori.qwen/
+android/app/src/debug/assets/characterpacks/
+gradle-local.properties

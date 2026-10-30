@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Pleos Vehicle Service 읽기 퍼미션. 실제로 쓰는 API의 것만 선언한다.
+         퍼미션은 Pleos App Market과 협의·승인된 범위 안에서만 쓸 수 있다. -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+
+    <!-- Pleos TextToSpeech SDK(음성) 퍼미션. Pleos 서비스가 정의한 normal 퍼미션이다. 위 읽기 퍼미션과 마찬가지로 승인 범위를 협의해야 한다.
+         SDK가 INTERNET(서버 모드용)도 매니페스트 병합으로 끌어온다. -->
+    <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
+
+    <!-- 정차 중 캐릭터를 런처/일반 배경 위에 올리는 특수 권한이다.
+         실제 Pleos 제품 배포 전에는 이 권한과 WindowManager 사용 범위를 별도로 승인받아야 한다. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- TextToSpeech가 TTS 엔진을 찾으려면 필요하다(안드로이드 11+ 패키지 가시성). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".app.CompanionApp"
+        android:allowBackup="false"
+        android:label="보이스 컴패니언"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- 주행 규제(CarUxRestrictions)용. 폰 이미지에는 없으므로 필수로 두지 않는다. -->
+        <uses-library
+            android:name="android.car"
+            android:required="false" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

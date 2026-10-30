@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보이스 컴패니언 시뮬레이터</title>
+<style>
+  :root { color-scheme: light dark; --line: color-mix(in srgb, CanvasText 22%, transparent); }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; padding: 16px; font: 15px/1.6 system-ui, "Malgun Gothic", sans-serif; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+  .col { display: grid; gap: 16px; min-width: 0; }
+  h1 { grid-column: 1 / -1; margin: 0; font-size: 18px; }
+  h2 { margin: 0; font-size: 15px; }
+  p { margin: 0; }
+  section { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px; }
+  .note { font-size: 13px; opacity: .75; }
+  label { display: grid; gap: 4px; }
+  label.check { display: flex; gap: 8px; align-items: center; }
+  input[type=text], select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: Field; color: FieldText; min-width: 0; }
+  button { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: ButtonFace; color: ButtonText; cursor: pointer; }
+  :focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
+  fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 10px; min-width: 0; }
+  fieldset:disabled { opacity: .55; }
+  #lines { display: grid; gap: 10px; }
+  #screen { min-height: 240px; place-content: center; text-align: center; }
+  #screen.driving { background: #101418; color: #d8dde6; border-color: transparent; }
+  #face { font-size: 72px; line-height: 1; }
+  #bubble { justify-self: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 16px; min-height: 2.4em; }
+  #events { display: flex; flex-wrap: wrap; gap: 8px; }
+  #log { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 300px; overflow: auto; font-size: 13px; font-variant-numeric: tabular-nums; }
+  #log li { border-bottom: 1px solid var(--line); padding-bottom: 4px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<h1>보이스 컴패니언 시뮬레이터 <span class="note">Pleos SDK 없이 반응 규칙만 확인해요</span></h1>
+
+<div class="col">
+  <section id="screen" aria-label="차량 화면 (앱 영역)">
+    <p id="banner" role="status"></p>
+    <div id="avatar">
+      <div id="face" aria-hidden="true">🙂</div>
+      <p id="bubble">차량 이벤트가 생기면 여기서 말해요.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-custom">
+    <h2 id="h-custom">대사와 목소리</h2>
+    <p id="why" class="note" hidden>주행 중에는 바꿀 수 없어요. 차를 세우면 바꿀 수 있어요.</p>
+    <fieldset id="custom">
+      <div id="lines"></div>
+      <label>목소리
+        <select id="preset">
+          <option value="bright">밝은</option>
+          <option value="calm">차분한</option>
+          <option value="deep">굵은</option>
+        </select>
+      </label>
+      <p class="note">대사를 비우면 기본 대사를 써요. 중립 음성 항목은 목소리와 상관없이 같은 목소리로 읽어요.</p>
+    </fieldset>
+    <p id="tts-note" class="note" hidden></p>
+  </section>
+</div>
+
+<div class="col">
+  <section aria-labelledby="h-sim">
+    <h2 id="h-sim">시뮬레이터 <span class="note">(실제 차에는 없어요)</span></h2>
+    <label class="check"><input type="checkbox" id="driving"> 주행 중</label>
+    <p class="note">끄면 정차(주차) 상태예요. 주행 중에는 아바타를 숨기고 목소리만 써요.</p>
+    <label class="check"><input type="checkbox" id="voiceDriving" checked> 주행 중 음성 허용</label>
+    <p class="note">끄면 Pleos가 주행 중 음성을 허용하지 않았을 때의 모습이에요.</p>
+    <label class="check"><input type="checkbox" id="nav"> 내비 안내 중</label>
+    <p class="note">켜면 오디오 포커스를 잃어서 반응이 멈춰요.</p>
+    <div id="events"></div>
+    <button id="burst" type="button">동시에 3종 (브레이크·방향지시등·경고)</button>
+    <p class="note">같은 순간에 여러 이벤트가 오면 가장 급한 하나만 말해요.</p>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <h2 id="h-log">반응 기록</h2>
+    <p id="empty" class="note">아직 반응이 없어요. 위에서 차량 이벤트를 눌러 보세요.</p>
+    <ol id="log" role="log" aria-live="polite"></ol>
+    <button id="clear" type="button">기록 지우기</button>
+  </section>
+</div>
+
+<script src="engine.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const tts = window.speechSynthesis;
+const SAVE_KEY = 'voice-companion.v0';
+const MAX_LINE = 60;
+// 브라우저 TTS는 Pleos TTS SDK의 대역이다. SDK 소개 문서엔 음색·속도 조절이 안 보이니, 실차에서도 되는지는 따로 확인해야 한다.
+const PRESETS = {
+  bright: { pitch: 1.6, rate: 1.15 },
+  calm: { pitch: 1, rate: 0.95 },
+  deep: { pitch: 0.6, rate: 0.9 },
+  neutral: { pitch: 1, rate: 1 }, // 안전 이벤트는 연출 없이 이 목소리로
+};
+const WHY = {
+  cooldown: (e) => `쿨다운 ${Math.ceil(e.waitMs / 1000)}초 남음`,
+  priority: (e) => `더 급한 반응(${labelOf(e.by)})이 먼저였어요`,
+  focus: () => '오디오 포커스를 잃은 상태예요 (내비 등이 말하는 중)',
+  'driving-silent': () => '주행 중 음성이 불허된 상태예요',
+  'unknown-event': () => '알 수 없는 이벤트예요',
+};
+let navBusy = false;
+const rows = {}; // 이벤트별 가장 최근 '말하기 요청' 행
+
+const labelOf = (name) => (engine.events[name] ? engine.events[name].label : name);
+
+// 기록: 엔진이 아는 건 '요청함'까지. 실제 재생은 브라우저가 알려 주는 대로 같은 행에 덧붙인다.
+function addLog(e) {
+  $('empty').hidden = true;
+  const li = document.createElement('li');
+  const time = new Date().toLocaleTimeString('en-GB'); // 24시간제 HH:MM:SS, 로컬 시각
+  const what = e.result === 'speak'
+    ? `말하기 요청 "${e.text}"`
+    : `버림 · ${(WHY[e.why] || (() => e.why))(e)}`;
+  li.textContent = `${time}  ${labelOf(e.name)} → ${what}`;
+  $('log').prepend(li);
+  if (e.result === 'speak') rows[e.name] = li;
+}
+
+function speak(text, { name, voice, volume }) {
+  const li = rows[name];
+  const note = (msg) => { if (li) li.textContent += ` · ${msg}`; };
+  if (!tts) return note('재생 불가 · 이 브라우저는 음성 합성을 지원하지 않아요');
+  tts.cancel(); // 한 번에 하나만. 새 반응이 이전 소리를 끊는다
+  const p = PRESETS[voice === 'neutral' ? 'neutral' : $('preset').value];
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ko-KR';
+  u.pitch = p.pitch;
+  u.rate = p.rate;
+  u.volume = volume;
+  const ko = tts.getVoices().find((v) => v.lang.toLowerCase().startsWith('ko'));
+  if (ko) u.voice = ko;
+  u.onstart = () => note('재생됨');
+  u.onerror = (ev) => note(/interrupted|canceled/.test(ev.error) ? '끊김' : `재생 실패 · ${ev.error}`);
+  tts.speak(u);
+}
+
+const platform = {
+  speak,
+  stop: () => tts && tts.cancel(),
+  requestFocus: () => !navBusy,
+  showAvatar: (face, text) => { $('face').textContent = face; $('bubble').textContent = text; },
+  hideAvatar: () => render(),
+  log: addLog,
+};
+const engine = Engine.createEngine(platform);
+
+// 저장된 값: 쓰는 쪽(save)과 읽는 쪽(아래 루프)이 같은 키를 쓴다. 깨졌거나 없으면 기본값.
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch {}
+const save = () => {
+  const lines = Object.fromEntries(Object.entries(engine.events).map(([k, v]) => [k, v.line]));
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ lines, preset: $('preset').value })); } catch {}
+};
+
+// 버튼과 대사 입력칸은 엔진의 이벤트 목록에서 만든다. 이름을 따로 적으면 어긋났을 때 조용히 안 움직인다.
+for (const [name, ev] of Object.entries(engine.events)) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = ev.label;
+  btn.onclick = () => engine.emit(name);
+  $('events').append(btn);
+
+  const stored = saved.lines && saved.lines[name];
+  if (typeof stored === 'string' && stored.trim()) engine.setLine(name, stored.trim().slice(0, MAX_LINE));
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.maxLength = MAX_LINE;
+  input.autocomplete = 'off';
+  input.value = engine.events[name].line;
+  input.placeholder = Engine.EVENTS[name].line; // 기본 대사. ev.line은 대사를 바꾸면 같이 바뀐다
+  input.oninput = () => { engine.setLine(name, input.value); save(); };
+  const label = document.createElement('label');
+  label.append(ev.label + (ev.neutral ? ' (중립 음성)' : ''), input);
+  $('lines').append(label);
+}
+if (['bright', 'calm', 'deep'].includes(saved.preset)) $('preset').value = saved.preset;
+$('preset').onchange = save;
+
+function render() {
+  const driving = $('driving').checked;
+  $('screen').classList.toggle('driving', driving);
+  $('avatar').hidden = driving;
+  $('custom').disabled = driving;
+  $('why').hidden = !driving;
+  $('banner').textContent = !driving
+    ? '정차 중이에요 · 캐릭터와 대사를 바꿀 수 있어요'
+    : $('voiceDriving').checked
+      ? '주행 중이에요 · 목소리로만 알려 줄게요'
+      : '주행 중이에요 · 차를 세울 때까지 조용히 있을게요';
+}
+
+$('driving').onchange = () => { engine.setDriving($('driving').checked); render(); };
+$('voiceDriving').onchange = () => { engine.setVoiceWhileDriving($('voiceDriving').checked); render(); };
+$('nav').onchange = () => { navBusy = $('nav').checked; if (navBusy) engine.focusLost(); };
+$('burst').onclick = () => ['brake', 'turn', 'warning'].forEach((n) => engine.emit(n));
+$('clear').onclick = () => { $('log').replaceChildren(); $('empty').hidden = false; };
+
+function checkVoices() {
+  const vs = tts ? tts.getVoices() : [];
+  $('tts-note').textContent = '한국어 음성이 없어 기본 음성으로 읽어요. 발음이 어색할 수 있어요.';
+  $('tts-note').hidden = !vs.length || vs.some((v) => v.lang.toLowerCase().startsWith('ko'));
+}
+if (tts) {
+  tts.addEventListener('voiceschanged', checkVoices);
+  checkVoices();
+} else {
+  $('tts-note').textContent = '이 브라우저는 음성 합성을 지원하지 않아요. 기록과 아바타만 볼 수 있어요.';
+  $('tts-note').hidden = false;
+}
+
+// 시뮬레이터가 CarUxRestrictions·Pleos 협의 결과 역할을 한다: 기동 때 화면의 현재 상태를 엔진에 알린다.
+engine.setVoiceWhileDriving($('voiceDriving').checked);
+engine.setDriving($('driving').checked);
+render();
+</script>
+</body>
+</html>
