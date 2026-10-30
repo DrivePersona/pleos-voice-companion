@@ -31,7 +31,10 @@ jobs:
         env:
           PROPERTY: ${{ steps.payload.outputs.property }}
           VERSION: ${{ steps.payload.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
+          # A fine-grained token restricted to this repository is used instead
+          # of the default GITHUB_TOKEN. The organization intentionally blocks
+          # GitHub Actions from creating PRs with its default token.
+          GH_TOKEN: ${{ secrets.DRIVEPERSONA_SYNC_TOKEN }}
         shell: bash
         run: |
           branch="automation/${PROPERTY##*.}-${VERSION}"

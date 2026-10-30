@@ -31,7 +31,7 @@ gpr.user=YOUR_GITHUB_USERNAME
 gpr.key=YOUR_CLASSIC_PAT_WITH_READ_PACKAGES
 ```
 
-The package versions are fixed in `android/gradle.properties`; they are updated through a reviewable pull request after a private pack release.
+The package versions are fixed in `android/gradle.properties`; they are updated through a reviewable pull request after a private pack release. To enable that PR, store the same `DRIVEPERSONA_SYNC_TOKEN` fine-grained token in this repository and in both private SDK repositories. Restrict it to this public repository with `Contents: write` and `Pull requests: write`.
 
 The `internal-android` CI job is deliberately disabled until an organization owner adds the package credentials to the protected `internal-build` environment and sets its `INTERNAL_PACKAGES_ENABLED` variable to `true`. Public pull-request CI never receives these credentials.
 
