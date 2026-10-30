@@ -39,6 +39,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           sed -i "s/^${PROPERTY}=.*/${PROPERTY}=${VERSION}/" android/gradle.properties
+          if git diff --quiet -- android/gradle.properties; then
+            echo "${PROPERTY} is already ${VERSION}; no pull request is needed."
+            exit 0
+          fi
           git add android/gradle.properties
           git commit -m "chore(packs): update ${PROPERTY} to ${VERSION}"
           git push origin "$branch"
