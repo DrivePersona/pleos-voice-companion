@@ -21,7 +21,9 @@ jobs:
   internal-android:
     # Never expose private package credentials to pull requests. This job runs
     # only after reviewed code reaches the protected default branch.
-    if: github.event_name == 'push'
+    # Enable only after the `internal-build` environment contains the two
+    # package credentials and the private SDKs have published the pinned version.
+    if: github.event_name == 'push' && vars.INTERNAL_PACKAGES_ENABLED == 'true'
     needs: web-simulator
     runs-on: ubuntu-latest
     environment: internal-build

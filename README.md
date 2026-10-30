@@ -33,6 +33,8 @@ gpr.key=YOUR_CLASSIC_PAT_WITH_READ_PACKAGES
 
 The package versions are fixed in `android/gradle.properties`; they are updated through a reviewable pull request after a private pack release.
 
+The `internal-android` CI job is deliberately disabled until an organization owner adds the package credentials to the protected `internal-build` environment and sets its `INTERNAL_PACKAGES_ENABLED` variable to `true`. Public pull-request CI never receives these credentials.
+
 ## Asset policy
 
 No Qwen model cache, reference voice, raw audition, unverified reference-derived character, or approved production pack binary is committed to this public repository.
