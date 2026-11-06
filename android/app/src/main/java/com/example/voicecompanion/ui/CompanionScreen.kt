@@ -68,7 +68,7 @@ internal fun CompanionScreen(viewModel: CompanionViewModel, onStartVrEffect: () 
     val state by viewModel.uiState.collectAsState()
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
-            if (effect is CompanionUiEffect.MoveTaskToBackForVr) onStartVrEffect()
+            if (effect is CompanionUiEffect.CloseSetupForVr) onStartVrEffect()
         }
     }
     CompanionContent(state, viewModel::onTouch)

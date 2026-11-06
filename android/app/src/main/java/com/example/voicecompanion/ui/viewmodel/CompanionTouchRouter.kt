@@ -12,7 +12,7 @@ internal fun routeTouch(runtime: CompanionUiRuntime, touch: CompanionTouch): Com
     is CompanionTouch.CharacterPackSelected -> { runtime.selectCharacterPack(touch.id); null }
     is CompanionTouch.VrEnabledChanged -> { runtime.changeVrEnabled(touch.enabled); null }
     CompanionTouch.VrPermissionRequested -> { runtime.openVrOverlayPermissionSettings(); null }
-    CompanionTouch.VrStarted -> if (runtime.beginVr()) CompanionUiEffect.MoveTaskToBackForVr else null
+    CompanionTouch.VrStarted -> if (runtime.beginVr()) CompanionUiEffect.CloseSetupForVr else null
     is CompanionTouch.DrivingChanged -> { runtime.changeDriving(touch.driving); null }
     is CompanionTouch.VoiceWhileDrivingChanged -> { runtime.changeVoiceWhileDriving(touch.enabled); null }
     is CompanionTouch.NavigationBusyChanged -> { runtime.changeNavBusy(touch.busy); null }

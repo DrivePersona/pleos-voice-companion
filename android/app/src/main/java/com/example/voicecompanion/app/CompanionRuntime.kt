@@ -246,6 +246,13 @@ class CompanionRuntime(private val app: Application) : Platform, CompanionUiRunt
         }, "characterpack-load").apply { isDaemon = true }.start()
     }
 
+    /** Boot/service entry point: keep settings out of the foreground and fail closed until CarUx confirms parked. */
+    fun startBackgroundSession() = onMain {
+        settingsVisible = false
+        start()
+        syncCharacterOverlay()
+    }
+
     private fun onMain(block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) block() else main.post(block)
     }

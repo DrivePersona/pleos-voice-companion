@@ -19,8 +19,10 @@
          SDK가 INTERNET(서버 모드용)도 매니페스트 병합으로 끌어온다. -->
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />
 
-    <!-- 정차 중 캐릭터를 런처/일반 배경 위에 올리는 특수 권한이다.
-         실제 Pleos 제품 배포 전에는 이 권한과 WindowManager 사용 범위를 별도로 승인받아야 한다. -->
+    <!-- Android cold-boot entry point; it never opens an Activity. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Project design assumes WindowManager overlay availability; the app still checks it at runtime. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- TextToSpeech가 TTS 엔진을 찾으려면 필요하다(안드로이드 11+ 패키지 가시성). -->
@@ -49,6 +51,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".app.CompanionRuntimeService"
+            android:exported="false"
+            android:stopWithTask="false" />
+
+        <receiver
+            android:name=".app.CompanionBootReceiver"
+            android:directBootAware="false"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

@@ -22,5 +22,5 @@ sealed interface CompanionTouch {
 
 /** Activity처럼 시스템 UI를 소유한 화면 계층에서만 처리할 일회성 효과. */
 sealed interface CompanionUiEffect {
-    data object MoveTaskToBackForVr : CompanionUiEffect
+    data object CloseSetupForVr : CompanionUiEffect
 }
